@@ -2,4 +2,6 @@
 
 
 ## pre require
-> pip install -r requiremtns.txt
+```bash
+pip install -r requiremtns.txt
+```
