@@ -7,6 +7,9 @@ import numpy as np
 import shutil as shu
 import myExtractor as extractor
 import json
+# for ROC Curve
+from sklearn import metrics
+import matplotlib.pyplot as plt
 
 
 class myClass:
@@ -91,6 +94,22 @@ class myClass:
         print("Best Parameters: ")
         print(json.dumps(params, indent=2))
         print("optimization!")
+
+    # TODO Test this methods
+    def make_ROC(self, y, scores):
+        fpr, tpr, thresholds = metrics.roc_curve(y, scores)
+        roc_auc = metrics.auc(fpr, tpr)
+        print("roc_auc value :", roc_auc)
+        plt.figure()
+        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+        plt.plot([0,1],[0,1],'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('')
+        plt.legend(loc="lower right")
+        plt.show()
 
     def run(self, type):
         if type == "t":

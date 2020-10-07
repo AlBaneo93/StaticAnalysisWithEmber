@@ -438,7 +438,11 @@ $RECYCLE.BIN/
 *.lnk
 
 # others
-output
+output/**
+dataset
+dataset/**
+data
 tmp*
 *.dat
+**/*.vir
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,macos,windows,visualstudiocode,pycharm,pycharm+all,pycharm+iml
