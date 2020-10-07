@@ -12,8 +12,10 @@ import json
 class myClass:
     def __init__(self, dataDir=None, output="./output", params={"application": "binary"}):
         self.dataDir = dataDir
-        self.params = params
         self.ouput = output
+        self.params = params
+        self.params.update({"application": "binary"})
+
 
     def train(self):
         self.model = ember.train_model("/DATA/2017_01", self.params)
@@ -103,9 +105,9 @@ if __name__ == "__main__":
     dataRoot = "/DATA"
     outputDirectory = "/home/cs206869/tmp/output"
 
-    params = {}
+    params = {"device":"gpu"}
 
-    ai = myClass(dataDir=dataRoot, output=outputDirectory)
+    ai = myClass(dataDir=dataRoot, output=outputDirectory, params=params)
     try:
         ai.make_feaures(os.path.join(outputDirectory, "/features"))
         # ai.preProcessing()
