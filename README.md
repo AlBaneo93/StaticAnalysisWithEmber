@@ -1,7 +1,7 @@
 # StaticAnalysisWithEmber
 
 
-## pre require
+## install require
 ```bash
 pip install -r requiremtns.txt
 ```
