@@ -38,7 +38,7 @@ class myClass:
         err_cnt = 0
         err_list = []
 
-        for file in os.walk(preDir)[2]:
+        for file in (os.walk(preDataDir))[2]:
             with open(os.path.abspath(file, "rb")).read() as bin:
 
                 try:
@@ -51,7 +51,7 @@ class myClass:
                     err_cnt += 1
                     err_list.append(file)
 
-        # get result
+        # get result, threshold
         pre_result = np.where(np.array(pre_result) > 0.5, 1, 0)
 
         # result save
@@ -124,14 +124,16 @@ if __name__ == "__main__":
     dataRoot = "/DATA"
     outputDirectory = "/home/cs206869/tmp/output"
 
+    # add hyper parameter in lgbm
+    # See : https://lightgbm.readthedocs.io/en/latest/Parameters.html
     params = {"device":"gpu"}
 
     ai = myClass(dataDir=dataRoot, output=outputDirectory, params=params)
     try:
         ai.make_feaures(os.path.join(outputDirectory, "/features"))
-        # ai.preProcessing()
-        # ai.train()  # TODO : model create to use multi feature
-        # ai.predict(preDataDir="", modelPath=os.path.join(outputDirectory, "model.dat"))
+        ai.preProcessing()
+        ai.train()  # TODO : model create to use multi feature
+        ai.predict(preDataDir="", modelPath=os.path.join(outputDirectory, "model.dat"))
 
     except Exception as e:
         # print("Error occured while running {} process".format())
