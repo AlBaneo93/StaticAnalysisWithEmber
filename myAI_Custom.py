@@ -7,22 +7,23 @@ import numpy as np
 import shutil as shu
 import myExtractor as extractor
 import json
+import scoring as score
+import argparse
 # for ROC Curve
 from sklearn import metrics
 import matplotlib.pyplot as plt
 
 
 class myClass:
-    def __init__(self, dataDir=None, output="./output", params={"application": "binary"}):
+    def __init__(self, dataDir=None, output=None, params=None, erroutput=None):
         self.dataDir = dataDir
-        self.ouput = output
+        self.output = output
         self.params = params
-        self.params.update({"application": "binary"})
-
+        self.erroutput = erroutput
 
     def train(self):
-        self.model = ember.train_model("/DATA/2017_01", self.params)
-        self.model.save_model(os.path.join(self.ouput, "model.dat"))
+        self.model = ember.train_model(self.output, self.params)
+        self.model.save_model(os.path.join(self.output, "model.dat"))
 
         print(" {:=^200} ".format('AI Model Created'))
 
@@ -30,7 +31,7 @@ class myClass:
     # model.txt 파일이 있는 경로
     def predict(self, preDataDir, modelPath):
         if not os.path.exists(modelPath):
-            raise Exception("{} 경로에 모델이 없습니다".format(modelPath))
+            raise Exception("There is not a model in {}".format(modelPath))
 
         model = lgb.Booster(model_file=modelPath)
         pre_result = []
@@ -67,9 +68,9 @@ class myClass:
     # def preProcessing(self, feature_dataDir, outputDir):
     def preProcessing(self):
         ember.create_vectorized_features(self.dataDir, 2)
-        shu.move(os.path.join(self.dataDir, "X.dat"), self.ouput)
-        shu.move(os.path.join(self.dataDir, "y.dat"), self.ouput)
-        print('Created the data in {}'.format(self.ouput))
+        shu.move(os.path.join(self.dataDir, "X.dat"), self.output)
+        shu.move(os.path.join(self.dataDir, "y.dat"), self.output)
+        print('Created the data in {}'.format(self.output))
 
     # make feature.jsonl files
     def make_feaures(self, output):
@@ -80,8 +81,11 @@ class myClass:
         for root, dirs, files in os.walk(self.dataDir):
             for directory in dirs:
                 base = os.path.join(root, directory)
+                # if os.path.exists(os.path.join(base, "{}_feature.jsonl".format(base.split("/")[-1]))):
+                #     os.remove(os.path.join(
+                #         base, "{}_feature.jsonl".format(base.split("/")[-1])))
                 extractor.Extractor(base, os.path.join(
-                    base, "label.csv"), os.path.join(base, "{}_feature.jsonl".format(os.path.dirname(directory)))).run()
+                    base, "label.csv"), os.path.join(base, "{}_feature.jsonl".format(base.split("/")[-1])), self.erroutput).run()
 
         print("make features in {}".format(output))
 
@@ -102,7 +106,7 @@ class myClass:
         print("roc_auc value :", roc_auc)
         plt.figure()
         plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0,1],[0,1],'k--')
+        plt.plot([0, 1], [0, 1], 'k--')
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
@@ -110,6 +114,10 @@ class myClass:
         plt.title('')
         plt.legend(loc="lower right")
         plt.show()
+
+    def getSCore(self):
+        # TODO
+        pass
 
     def run(self, type):
         if type == "t":
@@ -120,21 +128,42 @@ class myClass:
             self.preProcessing
 
 
-if __name__ == "__main__":
-    dataRoot = "/DATA"
-    outputDirectory = "/home/cs206869/tmp/output"
+# parse the hyper parameter
+def parse(params):
+    # print("test", params)
+    ret = {}
+    # print("test", plist)
+    for item in params.split(","):
+        aa = item.strip().split("=")
+        ret.update({aa[0].strip(): aa[1].strip()})
 
+    return ret
+
+
+if __name__ == "__main__":
+    # 현재 경로로 작업 디렉토리 변경
+    os.chdir(os.getcwd())
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", required=True, default="./data", type=str)
+    parser.add_argument("--out", required=True, default="./output", type=str)
+    parser.add_argument("--param", required=True, type=str)
+    args = parser.parse_args()
     # add hyper parameter in lgbm
     # See : https://lightgbm.readthedocs.io/en/latest/Parameters.html
-    params = {"device":"gpu"}
+    params = parse(args.param)
+    params.update({"application": "binary"})
+    params.update({"device": "gpu"})
 
-    ai = myClass(dataDir=dataRoot, output=outputDirectory, params=params)
+    ai = myClass(dataDir=args.data, output=args.out, params=params,
+                 erroutput=os.path.join(args.out, "error_output.txt"))
+    # argparse의 subparse를 이용하여 prediction과 training 분기 처리
     try:
-        ai.make_feaures(os.path.join(outputDirectory, "/features"))
-        ai.preProcessing()
-        ai.train()  # TODO : model create to use multi feature
-        ai.predict(preDataDir="", modelPath=os.path.join(outputDirectory, "model.dat"))
+        # ai.make_feaures(os.path.join(args.out, "/features"))
+        # ai.preProcessing()
+        ai.train()
+        # ai.predict(preDataDir="", modelPath=os.path.join(            args.out, "model.dat"))
 
     except Exception as e:
         # print("Error occured while running {} process".format())
-        print("Error Message\n{}".format(e))
+        print("Error Message : {}".format(e))

@@ -11,9 +11,10 @@ import multiprocessing
 
 
 class Extractor:
-    def __init__(self, datadir, label, output):
+    def __init__(self, datadir, label, output, erroutput):
         self.datadir = datadir
         self.output = output
+        self.erroutput = erroutput
         self.data = pd.read_csv(label, names=["hash", "y"])
         self.features = PEFeatureExtractor()
 
@@ -38,7 +39,7 @@ class Extractor:
         except Exception as e:
             # print("errror exception\n")
             ''' file name extract when error occured while feature extract from pe binary '''
-            with open("./error_file/err_file_list.txt", "a", encoding="utf-8") as f:
+            with open(self.erroutput, "a", encoding="utf-8") as f:
                 if sample.endswith('.vir'):
                     f.writelines(sample)
                     f.writelines("\n")
