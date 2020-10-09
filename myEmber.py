@@ -217,7 +217,7 @@ def train_model(data_dir, params={}, feature_version=2):
     Train the LightGBM model from the EMBER dataset from the vectorized features
     """
     # update params
-    params.update({"application": "binary"})
+    # params.update({"application": "binary"})
 
     # Read data
     X_train, y_train = read_vectorized_features(
