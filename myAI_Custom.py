@@ -12,6 +12,8 @@ import argparse
 # for ROC Curve
 from sklearn import metrics
 import matplotlib.pyplot as plt
+# GET GPU State
+import torch
 
 
 class myClass:
@@ -31,27 +33,30 @@ class myClass:
     # model.txt 파일이 있는 경로
     def predict(self, preDataDir, modelPath):
         if not os.path.exists(modelPath):
-            raise Exception("There is not a model in {}".format(modelPath))
+            raise Exception(
+                "There is not a model in {} path".format(modelPath))
 
-        model = lgb.Booster(model_file=modelPath)
+        model = lgb.Booster(model_file=modelPath, params=self.params)
         pre_result = []
         file_name = []
         err_cnt = 0
         err_list = []
 
-        for file in (os.walk(preDataDir))[2]:
-            with open(os.path.abspath(file, "rb")).read() as bin:
-
-                try:
-                    pre_result.append(
-                        ember.predict_sample(model, bin)
-                    )
-                    file_name.append(file)
-                except Exception as e:
-                    print("Error Occured {}".format(e))
-                    err_cnt += 1
-                    err_list.append(file)
-
+        for root, dirs, files in os.walk(preDataDir):
+            for file in files:
+                if file.endswith("vir"):
+                    with open(os.path.join(root, file), "rb") as bin:
+                        try:
+                            pre_result.append(
+                                ember.predict_sample(model, bin.read())
+                            )
+                            file_name.append(file)
+                        except Exception as e:
+                            print("Error Occured {}".format(e))
+                            err_cnt += 1
+                            err_list.append(file)
+                            # raise Exception(e)
+        print(pre_result)
         # get result, threshold
         pre_result = np.where(np.array(pre_result) > 0.5, 1, 0)
 
@@ -63,9 +68,11 @@ class myClass:
         with open(os.path.join(self.output, "error.txt"), "w", encoding="utf-8") as f:
             for idx, line in enumerate(err_list):
                 f.writelines("{}, {}".format(idx, line))
-
+        return self.getSCore(
+            os.path.join(self.output, "result.csv"), os.path.join(preDataDir, "answer.csv"))
     # jsonl파일들을 가지고 feature vector를 만든다
     # def preProcessing(self, feature_dataDir, outputDir):
+
     def preProcessing(self):
         ember.create_vectorized_features(self.dataDir, 2)
         shu.move(os.path.join(self.dataDir, "X.dat"), self.output)
@@ -99,25 +106,24 @@ class myClass:
         print(json.dumps(params, indent=2))
         print("optimization!")
 
-    # TODO Test this methods
+    # TODO
     def make_ROC(self, y, scores):
         fpr, tpr, thresholds = metrics.roc_curve(y, scores)
         roc_auc = metrics.auc(fpr, tpr)
         print("roc_auc value :", roc_auc)
         plt.figure()
-        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], 'k--')
+        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc[2])
+        plt.plot([0, 1], [0, 1], linestyle='--')
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('')
-        plt.legend(loc="lower right")
+        plt.title('Model ROC Curve')
+        # plt.legend(loc="lower right")
         plt.show()
 
-    def getSCore(self):
-        # TODO
-        pass
+    def getSCore(self, resultPath, answerPath):
+        return score(resultPath, answerPath).run()
 
     def run(self, type):
         if type == "t":
@@ -140,6 +146,13 @@ def parse(params):
     return ret
 
 
+def printResult(TP, TN, FP, FN, overDetection, missDetection, correction):
+    print("{:=^150}".format("PREDICTION RESULT"))
+    print("TP : {} TN : {} FP : {} FN : {}".format(TP, TN, FP, FN))
+    print("overDetection : {} missDetection : {} correction : {}".format(
+        overDetection, missDetection, correction))
+
+
 if __name__ == "__main__":
     # 현재 경로로 작업 디렉토리 변경
     os.chdir(os.getcwd())
@@ -149,11 +162,14 @@ if __name__ == "__main__":
     parser.add_argument("--out", required=True, default="./output", type=str)
     parser.add_argument("--param", required=True, type=str)
     args = parser.parse_args()
+
+    num_gpus = torch.cuda.device_count()
+
     # add hyper parameter in lgbm
     # See : https://lightgbm.readthedocs.io/en/latest/Parameters.html
     params = parse(args.param)
-    params.update({"application": "binary"})
-    params.update({"device": "gpu"})
+    params.update({"application": "binary",
+                   "device": "gpu", "num_gpu": num_gpus})
 
     ai = myClass(dataDir=args.data, output=args.out, params=params,
                  erroutput=os.path.join(args.out, "error_output.txt"))
@@ -161,9 +177,11 @@ if __name__ == "__main__":
     try:
         # ai.make_feaures(os.path.join(args.out, "/features"))
         # ai.preProcessing()
-        ai.train()
-        # ai.predict(preDataDir="", modelPath=os.path.join(            args.out, "model.dat"))
-
+        # ai.train()
+        TP, TN, FP, FN, overDetection, missDetection, correction = ai.predict(
+            preDataDir="./predict/2020_01", modelPath=os.path.join(args.out, "model.dat"))
+        # printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
+        ai.make_ROC()
     except Exception as e:
         # print("Error occured while running {} process".format())
         print("Error Message : {}".format(e))

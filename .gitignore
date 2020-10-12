@@ -445,4 +445,5 @@ data
 tmp*
 *.dat
 **/*.vir
+predict
 # End of https://www.toptal.com/developers/gitignore/api/python,linux,macos,windows,visualstudiocode,pycharm,pycharm+all,pycharm+iml

@@ -7,9 +7,9 @@ percentage = result / answer * 100
 
 
 class Score:
-    def __init__(self, resultPath, answerPath):
-        self.rPath = resultPath
-        self.aPath = answerPath
+    def __init__(self, resultPath, answeresultPath):
+        self.resultPath = resultPath
+        self.answerPath = answeresultPath
 
     def content_to_dict(self, file):
         dict = {}
@@ -20,8 +20,10 @@ class Score:
         return dict
 
     def run(self):
-        result = self.content_to_dict(open(self.rPath, "r", encoding="utf-8"))
-        answer = self.content_to_dict(open(self.aPath, "r", encoding="utf-8"))
+        result = self.content_to_dict(
+            open(self.resultPath, "r", encoding="utf-8"))
+        answer = self.content_to_dict(
+            open(self.answerPath, "r", encoding="utf-8"))
 
         result_orderd_key_list = sorted(result.keys())
         answer_orderd_key_list = sorted(answer.keys())
@@ -69,4 +71,5 @@ class Score:
         except ZeroDivisionError:
             correction = 0
 
-        print("정탐률 : ", correction, ", 과탐률 : ", overDetection, ", 미탐률 : ", missDetection)
+        return TP, TN, FP, FN, overDetection, missDetection, correction
+# print("정탐률 : ", correction, ", 과탐률 : ",    overDetection, ", 미탐률 : ", missDetection)
