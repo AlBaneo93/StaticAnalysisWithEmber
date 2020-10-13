@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from collections import OrderedDict
 import os
 import pandas as pd
@@ -22,6 +24,7 @@ class myClass:
         self.output = output
         self.params = params
         self.erroutput = erroutput
+        self.result = []
 
     def train(self):
         self.model = ember.train_model(self.output, self.params)
@@ -36,7 +39,7 @@ class myClass:
             raise Exception(
                 "There is not a model in {} path".format(modelPath))
 
-        model = lgb.Booster(model_file=modelPath, params=self.params)
+        model = lgb.Booster(self.params, model_file=modelPath)
         pre_result = []
         file_name = []
         err_cnt = 0
@@ -56,23 +59,26 @@ class myClass:
                             err_cnt += 1
                             err_list.append(file)
                             # raise Exception(e)
-        print(pre_result)
-        # get result, threshold
-        pre_result = np.where(np.array(pre_result) > 0.5, 1, 0)
 
+        # get result, threshold
+        self.result = np.where(np.array(pre_result) > 0.5, 1, 0)
+
+        print("prediction finished")
         # result save
-        series = OrderedDict([("hash", file_name), ("label", pre_result)])
+        series = OrderedDict([("hash", file_name), ("label", self.result)])
         res = pd.DataFrame.from_dict(series)
+        print(1)
         res.to_csv(os.path.join(self.output, "result.csv"),
                    index=False, header=["hash", "label"])
+        print(2)
         with open(os.path.join(self.output, "error.txt"), "w", encoding="utf-8") as f:
+            print(3)
             for idx, line in enumerate(err_list):
                 f.writelines("{}, {}".format(idx, line))
-        return self.getSCore(
-            os.path.join(self.output, "result.csv"), os.path.join(preDataDir, "answer.csv"))
-    # jsonl파일들을 가지고 feature vector를 만든다
-    # def preProcessing(self, feature_dataDir, outputDir):
+            print(4)
+        return self.getSCore(os.path.join(self.output, "result.csv"), os.path.join(preDataDir, "label.csv")).run()
 
+    # jsonl파일들을 가지고 feature vector를 만든다
     def preProcessing(self):
         ember.create_vectorized_features(self.dataDir, 2)
         shu.move(os.path.join(self.dataDir, "X.dat"), self.output)
@@ -123,6 +129,7 @@ class myClass:
         plt.show()
 
     def getSCore(self, resultPath, answerPath):
+        print("in getScore method")
         return score(resultPath, answerPath).run()
 
     def run(self, type):
@@ -160,7 +167,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, default="./data", type=str)
     parser.add_argument("--out", required=True, default="./output", type=str)
-    parser.add_argument("--param", required=True, type=str)
+    parser.add_argument("--param", type=str)
     args = parser.parse_args()
 
     num_gpus = torch.cuda.device_count()
@@ -180,7 +187,7 @@ if __name__ == "__main__":
         # ai.train()
         TP, TN, FP, FN, overDetection, missDetection, correction = ai.predict(
             preDataDir="./predict/2020_01", modelPath=os.path.join(args.out, "model.dat"))
-        # printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
+        printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
         ai.make_ROC()
     except Exception as e:
         # print("Error occured while running {} process".format())

@@ -1,11 +1,3 @@
-import os
-
-"""
-percentage = result / answer * 100
-3번째 자리에서 반올림
-"""
-
-
 class Score:
     def __init__(self, resultPath, answeresultPath):
         self.resultPath = resultPath
