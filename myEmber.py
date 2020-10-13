@@ -171,7 +171,7 @@ def read_metadata(data_dir):
     return pd.read_csv(os.path.join(data_dir, "metadata.csv"), index_col=0)
 
 
-def optimize_model(data_dir):
+def optimize_model(data_dir, user_params):
     """
     Run a grid search to find the best LightGBM parameters
     """
@@ -190,15 +190,17 @@ def optimize_model(data_dir):
     score = make_scorer(roc_auc_score, max_fpr=5e-3)
 
     # define search grid
+    # see : https://lightgbm.readthedocs.io/en/latest/pythonapi/lightgbm.LGBMClassifier.html
     param_grid = {
         'boosting_type': ['gbdt'],
         'objective': ['binary'],
-        'num_iterations': [500, 1000],
-        'learning_rate': [0.005, 0.05],
-        'num_leaves': [512, 1024, 2048],
+        'num_iterations': [500, 750, 1000, 1500],
+        'learning_rate': [0.005, 0.05, 0.01, 0.1],
+        'num_leaves': [512, 1024, 2048, 4096],
         'feature_fraction': [0.5, 0.8, 1.0],
         'bagging_fraction': [0.5, 0.8, 1.0]
     }
+    param_grid.update(user_params)  # 파라미터 추가 및 사용자 임의로 업데이트 가능
     model = lgb.LGBMClassifier(boosting_type="gbdt", n_jobs=-1, silent=True)
 
     # each row in X_train appears in chronological order of "appeared"
@@ -206,7 +208,7 @@ def optimize_model(data_dir):
     progressive_cv = TimeSeriesSplit(n_splits=3).split(X_train)
 
     grid = GridSearchCV(estimator=model, cv=progressive_cv,
-                        param_grid=param_grid, scoring=score, n_jobs=1, verbose=3)
+                        param_grid=param_grid, scoring=score, n_jobs=-1, verbose=3)
     grid.fit(X_train, y_train)
 
     return grid.best_params_
@@ -239,4 +241,5 @@ def predict_sample(lgbm_model, file_data, feature_version=2):
     """
     extractor = PEFeatureExtractor(feature_version)
     features = np.array(extractor.feature_vector(file_data), dtype=np.float32)
-    return lgbm_model.predict([features])[0]
+    # return lgbm_model.predict([features])[0]
+    return lgbm_model.predict([features])

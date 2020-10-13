@@ -5,13 +5,10 @@ class Score:
     def __init__(self, resultPath, answerPath):
         self.resultPath = resultPath
         self.answerPath = answerPath
+        self.answer_dict = []
 
     def content_to_dict(self, lines):
-        dict = {}
-        for idx in range(len(lines)):
-            data = lines[idx].split(",")
-            dict[data[0]] = data[1]
-        return dict
+        return {line.split(",")[0]: line.split(",")[1] for line in lines}
 
     def run(self):
         result = self.content_to_dict(

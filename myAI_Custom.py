@@ -24,9 +24,14 @@ class myClass:
         self.output = output
         self.params = params
         self.erroutput = erroutput
+        self.is_optimize = False
         self.result = []
 
     def train(self):
+        if self.is_optimize:
+            print("begin Optimize")
+            self.optimize(self.dataDir, self.params)
+
         self.model = ember.train_model(self.output, self.params)
         self.model.save_model(os.path.join(self.output, "model.dat"))
 
@@ -50,15 +55,16 @@ class myClass:
                 if file.endswith("vir"):
                     with open(os.path.join(root, file), "rb") as bin:
                         try:
+                            tmp = ember.predict_sample(model, bin.read())
                             pre_result.append(
-                                ember.predict_sample(model, bin.read())
+                                tmp[0]
                             )
                             file_name.append(file)
                         except Exception as e:
-                            print("Error Occured {}".format(e))
+                            # print("Error Occured {}".format(e))
                             err_cnt += 1
                             err_list.append(file)
-                            # raise Exception(e)
+                            raise Exception(e)
 
         # get result, threshold
         self.result = np.where(np.array(pre_result) > 0.5, 1, 0)
@@ -100,22 +106,32 @@ class myClass:
         print("make features in {}".format(output))
 
     # optimize hparams
-    def optimize(self, dataDir):
+    def optimize(self, dataDir, params):
         """
         : param dataDir : X.dat, y.dat가 있는 폴더
          """
-        params = ember.optimize_model(dataDir)
+        params = ember.optimize_model(dataDir, params)
+        with open(os.path.join(self.output, 'best_params.txt', 'w', encoding='utf-8')) as f:
+            f.write(params)
         print("Best Parameters: ")
         print(json.dumps(params, indent=2))
-        print("optimization!")
 
     # TODO
-    def make_ROC(self, y, scores):
-        fpr, tpr, thresholds = metrics.roc_curve(y, scores)
+    def make_ROC(self, path, score):
+        tmp = {}
+        with open(path, 'r', encoding='utf-8') as f:
+            tmp = {line.split(",")[0].strip(): int(line.split(",")[1].strip())
+                   for line in f.readlines()}
+
+        # np parsing
+        labels = np.array([tmp[item] for item in sorted(tmp.keys())])
+        score = np.array(score)
+        # roc_curve(test, score)
+        fpr, tpr, thresholds = metrics.roc_curve(labels, score)
         roc_auc = metrics.auc(fpr, tpr)
         print("roc_auc value :", roc_auc)
         plt.figure()
-        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc[2])
+        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
         plt.plot([0, 1], [0, 1], linestyle='--')
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.05])
@@ -124,6 +140,9 @@ class myClass:
         plt.title('Model ROC Curve')
         # plt.legend(loc="lower right")
         plt.show()
+        roc_curve_path = os.path.join(self.output, 'prediction_result.png')
+        plt.savefig(roc_curve_path, dpi=plt.gcf().dpi)
+        print("{:=^150}".format("save graph in "+roc_curve_path))
 
     def getSCore(self, resultPath, answerPath):
         return score.Score(resultPath, answerPath).run()
@@ -164,7 +183,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True, default="./data", type=str)
     parser.add_argument("--out", required=True, default="./output", type=str)
+    parser.add_argument("--pre", type=str)
     parser.add_argument("--param", type=str)
+    parser.add_argument("--opti", type=bool, default=False)
     args = parser.parse_args()
 
     num_gpus = torch.cuda.device_count()
@@ -181,12 +202,12 @@ if __name__ == "__main__":
     try:
         # ai.make_feaures(os.path.join(args.out, "/features"))
         # ai.preProcessing()
-        # ai.train()
+        ai.train()
         TP, TN, FP, FN, overDetection, missDetection, correction = ai.predict(
-            preDataDir="./predict", modelPath=os.path.join(args.out, "model.dat"))
-
-        printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
-        ai.make_ROC()
+            preDataDir="/home/cs206869/tmp/predict/2020_01", modelPath=os.path.join(args.out, "model.dat"))
+        # printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
+        ai.make_ROC(os.path.join(
+            "/home/cs206869/tmp/predict/2020_01", "label.csv"), ai.result)
     except Exception as e:
         # print("Error occured while running {} process".format())
         print("Error Message : {}".format(e))
