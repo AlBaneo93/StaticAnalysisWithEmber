@@ -1,11 +1,13 @@
-class Score:
-    def __init__(self, resultPath, answeresultPath):
-        self.resultPath = resultPath
-        self.answerPath = answeresultPath
+import re
 
-    def content_to_dict(self, file):
+
+class Score:
+    def __init__(self, resultPath, answerPath):
+        self.resultPath = resultPath
+        self.answerPath = answerPath
+
+    def content_to_dict(self, lines):
         dict = {}
-        lines = file.readlines()
         for idx in range(len(lines)):
             data = lines[idx].split(",")
             dict[data[0]] = data[1]
@@ -13,9 +15,9 @@ class Score:
 
     def run(self):
         result = self.content_to_dict(
-            open(self.resultPath, "r", encoding="utf-8"))
+            open(self.resultPath, "r", encoding="utf-8").readlines())
         answer = self.content_to_dict(
-            open(self.answerPath, "r", encoding="utf-8"))
+            open(self.answerPath, "r", encoding="utf-8").readlines())
 
         result_orderd_key_list = sorted(result.keys())
         answer_orderd_key_list = sorted(answer.keys())
@@ -28,22 +30,27 @@ class Score:
         FP = 0
         FN = 0
 
+        rnum = len(result_orderd_key_list)
+        anum = len(answer_orderd_key_list)
         # 비교
-        for idx in range(len(result_orderd_key_list)):
+        for idx in range(min(rnum, anum)):
+
             rkey = result_orderd_key_list[idx]
             akey = answer_orderd_key_list[idx]
+            rval = int(answer[akey])
+            aval = int(result[rkey])
 
-            if result[rkey] == answer[akey]:
-                if answer[akey] == 1 and result[rkey] == 1:
+            if rval == aval:
+                if aval == 1 and rval == 1:
                     # TP
                     TP += 1
-                elif answer[akey] == 0 and result[rkey] == 0:
+                elif aval == 0 and rval == 0:
                     # TN
                     TN += 1
             else:
-                if answer[akey] == 0 and result[rkey] == 1:
+                if aval == 0 and rval == 1:
                     FP += 1
-                elif answer[akey] == 1 and result[rkey] == 0:
+                elif aval == 1 and rval == 0:
                     FN += 1
 
         overDetection = 0

@@ -9,7 +9,7 @@ import numpy as np
 import shutil as shu
 import myExtractor as extractor
 import json
-import scoring as score
+import score
 import argparse
 # for ROC Curve
 from sklearn import metrics
@@ -67,16 +67,13 @@ class myClass:
         # result save
         series = OrderedDict([("hash", file_name), ("label", self.result)])
         res = pd.DataFrame.from_dict(series)
-        print(1)
         res.to_csv(os.path.join(self.output, "result.csv"),
                    index=False, header=["hash", "label"])
-        print(2)
+
         with open(os.path.join(self.output, "error.txt"), "w", encoding="utf-8") as f:
-            print(3)
             for idx, line in enumerate(err_list):
                 f.writelines("{}, {}".format(idx, line))
-            print(4)
-        return self.getSCore(os.path.join(self.output, "result.csv"), os.path.join(preDataDir, "label.csv")).run()
+        return self.getSCore(os.path.join(self.output, "result.csv"), os.path.join(preDataDir, "label.csv"))
 
     # jsonl파일들을 가지고 feature vector를 만든다
     def preProcessing(self):
@@ -129,8 +126,7 @@ class myClass:
         plt.show()
 
     def getSCore(self, resultPath, answerPath):
-        print("in getScore method")
-        return score(resultPath, answerPath).run()
+        return score.Score(resultPath, answerPath).run()
 
     def run(self, type):
         if type == "t":
@@ -158,6 +154,7 @@ def printResult(TP, TN, FP, FN, overDetection, missDetection, correction):
     print("TP : {} TN : {} FP : {} FN : {}".format(TP, TN, FP, FN))
     print("overDetection : {} missDetection : {} correction : {}".format(
         overDetection, missDetection, correction))
+    print("{:=^150}".format(""))
 
 
 if __name__ == "__main__":
@@ -186,7 +183,8 @@ if __name__ == "__main__":
         # ai.preProcessing()
         # ai.train()
         TP, TN, FP, FN, overDetection, missDetection, correction = ai.predict(
-            preDataDir="./predict/2020_01", modelPath=os.path.join(args.out, "model.dat"))
+            preDataDir="./predict", modelPath=os.path.join(args.out, "model.dat"))
+
         printResult(TP, TN, FP, FN, overDetection, missDetection, correction)
         ai.make_ROC()
     except Exception as e:
