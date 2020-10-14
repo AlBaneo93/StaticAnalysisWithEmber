@@ -111,7 +111,8 @@ class myClass:
         : param dataDir : X.dat, y.dat가 있는 폴더
          """
         params = ember.optimize_model(dataDir, params)
-        with open(os.path.join(self.output, 'best_params.txt', 'w', encoding='utf-8')) as f:
+        with open(os.path.join(self.output, 'best_params.txt'), 'w', encoding='utf-8') as f:
+            print("{:=^200}".format("optimize data saved"))
             f.write(params)
         print("Best Parameters: ")
         print(json.dumps(params, indent=2))
@@ -158,12 +159,11 @@ class myClass:
 
 # parse the hyper parameter
 def parse(params):
-    # print("test", params)
     ret = {}
-    # print("test", plist)
-    for item in params.split(","):
-        aa = item.strip().split("=")
-        ret.update({aa[0].strip(): aa[1].strip()})
+    if params:
+        for item in params.split(","):
+            aa = item.strip().split("=")
+            ret.update({aa[0].strip(): aa[1].strip()})
 
     return ret
 
@@ -192,6 +192,7 @@ if __name__ == "__main__":
 
     # add hyper parameter in lgbm
     # See : https://lightgbm.readthedocs.io/en/latest/Parameters.html
+
     params = parse(args.param)
     params.update({"application": "binary",
                    "device": "gpu", "num_gpu": num_gpus})

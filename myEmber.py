@@ -89,7 +89,7 @@ def create_vectorized_features(data_dir, feature_version=2):
     # nrows = sum([1 for fp in raw_feature_paths for line in open(fp)])
     # vectorize_subset(X_path, y_path, raw_feature_paths, extractor, nrows)
 
-
+# TODO : 모든 feature.jsonl에서 데이터를 불러와 vectorize하게 바꾸어야 함
 def read_vectorized_features(data_dir, subset=None, feature_version=2):
     """
     Read vectorized features into memory mapped numpy arrays

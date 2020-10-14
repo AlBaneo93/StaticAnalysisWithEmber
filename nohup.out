@@ -1,0 +1,2 @@
+  File "myAI_Custom.py", line 40
+SyntaxError: Non-ASCII character '\xec' in file myAI_Custom.py on line 40, but no encoding declared; see http://www.python.org/peps/pep-0263.html for details
